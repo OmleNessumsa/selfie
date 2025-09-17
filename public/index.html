@@ -3,8 +3,61 @@
 <head>
   <meta charset="UTF-8">
   <title>Verify Captain</title>
+   <style>
+    body {
+      background-color: #0d1117; /* donkere achtergrond */
+      color: #e6edf3;           /* zachte tekstkleur */
+      font-family: 'Inter', Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .container {
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    input {
+      background-color: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 0.8rem 1rem;
+      width: 280px;
+      font-size: 1.1rem;
+      color: #c9d1d9;
+      letter-spacing: 3px;
+      text-align: center;
+      outline: none;
+    }
+
+    input::placeholder {
+      color: #6e7681;
+    }
+
+    button {
+      background-color: #238636;
+      border: none;
+      border-radius: 8px;
+      padding: 0.8rem 1.2rem;
+      font-size: 1rem;
+      margin-left: 0.8rem;
+      color: white;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+
+    button:hover {
+      background-color: #2ea043;
+    }
+  </style>
 </head>
-<body style="color:white;background:#051671;">
+<body >
   <h1>Take a selfie while looking straight into the camera.</h1>
   <video id="video" autoplay playsinline></video>
   <button id="capture">Take</button>
