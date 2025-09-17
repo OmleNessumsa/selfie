@@ -1,95 +1,66 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="nl">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Selfie capture</title>
-  <style>
-    body { font-family: system-ui, sans-serif; display:flex; flex-direction:column; align-items:center; gap:12px; padding:20px; color:white;background:#0C195D;}
-    video, canvas { width:320px; height:240px; background:#000; border-radius:8px; }
-    button { padding:10px 16px; font-size:16px; }
-    .hidden { display:none; }
-  </style>
+  <meta charset="UTF-8">
+  <title>Verify Captain</title>
 </head>
-<body>
-  <h1>Verify Captain</h1>
-
+<body style="color:white;background:#051671;">
+  <h1>Take a selfie while looking straight into the camera.</h1>
   <video id="video" autoplay playsinline></video>
-  <canvas id="canvas" class="hidden" width="640" height="480"></canvas>
+  <button id="capture">Take</button>
+  <canvas id="canvas" style="display:none;"></canvas>
+  <img id="preview" style="display:none; max-width: 300px;" />
+  <button id="send" style="display:none;">Verify</button>
 
-  <div>
-    <button id="take">Take selfie</button>
-    <button id="retake" class="hidden">Retake</button>
-    <button id="submit" class="hidden">Verify</button>
-  </div>
+  <script>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const preview = document.getElementById('preview');
+    const captureButton = document.getElementById('capture');
+    const sendButton = document.getElementById('send');
 
-  <p id="status"></p>
+    // Gebruik je eigen n8n webhook URL hier
+    const WEBHOOK_URL = "https://asmussen.app.n8n.cloud/webhook/foto";
 
-<script>
-(async () => {
-  const video = document.getElementById('video');
-  const canvas = document.getElementById('canvas');
-  const takeBtn = document.getElementById('take');
-  const retakeBtn = document.getElementById('retake');
-  const submitBtn = document.getElementById('submit');
-  const status = document.getElementById('status');
+    // Camera openen
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(stream => video.srcObject = stream)
+      .catch(err => console.error("Camera fout:", err));
 
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
-    video.srcObject = stream;
-  } catch (err) {
-    status.textContent = 'Kon camera niet openen: ' + err.message;
-    takeBtn.disabled = true;
-  }
+    // Foto nemen
+    captureButton.addEventListener('click', () => {
+      const context = canvas.getContext('2d');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-  function showCaptured() {
-    video.classList.add('hidden');
-    canvas.classList.remove('hidden');
-    takeBtn.classList.add('hidden');
-    retakeBtn.classList.remove('hidden');
-    submitBtn.classList.remove('hidden');
-  }
-  function showLive() {
-    video.classList.remove('hidden');
-    canvas.classList.add('hidden');
-    takeBtn.classList.remove('hidden');
-    retakeBtn.classList.add('hidden');
-    submitBtn.classList.add('hidden');
-  }
+      // Preview tonen
+      preview.src = canvas.toDataURL("image/jpeg");
+      preview.style.display = "block";
+      sendButton.style.display = "inline-block";
+    });
 
-  takeBtn.addEventListener('click', () => {
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    showCaptured();
-  });
+    // Versturen als binary via FormData
+    sendButton.addEventListener('click', () => {
+      canvas.toBlob(blob => {
+        const formData = new FormData();
+        formData.append("file", blob, "selfie.jpg");
 
-  retakeBtn.addEventListener('click', () => {
-    showLive();
-  });
-
-  submitBtn.addEventListener('click', async () => {
-    status.textContent = 'Versturen…';
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-    const base64 = dataUrl.split(',')[1];
-
-    try {
-      const res = await fetch('https://asmussen.app.n8n.cloud/webhook/foto', {   // <--- zet hier je webhook URL
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          filename: `selfie-${Date.now()}.jpg`,
-          image_base64: base64,
-          redirect_url: 'https://example.com/bedankt'
+        fetch(WEBHOOK_URL, {
+          method: "POST",
+          body: formData
         })
-      });
-      const body = await res.json();
-      status.textContent = 'Foto verzonden — doorsturen...';
-      window.location.href = body.redirect_url || 'https://codechecker-mauve.vercel.app/';
-    } catch (err) {
-      status.textContent = 'Fout bij verzenden: ' + err.message;
-    }
-  });
-})();
-</script>
+        .then(res => {
+          if (!res.ok) throw new Error("Upload mislukt");
+          return res.text();
+        })
+        .then(data => {
+          console.log("Upload gelukt:", data);
+          window.location.href = "https://codechecker-mauve.vercel.app/";
+        })
+        .catch(err => console.error("Fout:", err));
+      }, "image/jpeg");
+    });
+  </script>
 </body>
 </html>
