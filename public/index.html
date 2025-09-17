@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Selfie capture</title>
+  <style>
+    body { font-family: system-ui, sans-serif; display:flex; flex-direction:column; align-items:center; gap:12px; padding:20px; }
+    video, canvas { width:320px; height:240px; background:#000; border-radius:8px; }
+    button { padding:10px 16px; font-size:16px; }
+    .hidden { display:none; }
+  </style>
+</head>
+<body>
+  <h1>Maak een selfie</h1>
+
+  <video id="video" autoplay playsinline></video>
+  <canvas id="canvas" class="hidden" width="640" height="480"></canvas>
+
+  <div>
+    <button id="take">Neem foto</button>
+    <button id="retake" class="hidden">Opnieuw</button>
+    <button id="submit" class="hidden">Verstuur & ga door</button>
+  </div>
+
+  <p id="status"></p>
+
+<script>
+(async () => {
+  const video = document.getElementById('video');
+  const canvas = document.getElementById('canvas');
+  const takeBtn = document.getElementById('take');
+  const retakeBtn = document.getElementById('retake');
+  const submitBtn = document.getElementById('submit');
+  const status = document.getElementById('status');
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
+    video.srcObject = stream;
+  } catch (err) {
+    status.textContent = 'Kon camera niet openen: ' + err.message;
+    takeBtn.disabled = true;
+  }
+
+  function showCaptured() {
+    video.classList.add('hidden');
+    canvas.classList.remove('hidden');
+    takeBtn.classList.add('hidden');
+    retakeBtn.classList.remove('hidden');
+    submitBtn.classList.remove('hidden');
+  }
+  function showLive() {
+    video.classList.remove('hidden');
+    canvas.classList.add('hidden');
+    takeBtn.classList.remove('hidden');
+    retakeBtn.classList.add('hidden');
+    submitBtn.classList.add('hidden');
+  }
+
+  takeBtn.addEventListener('click', () => {
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    showCaptured();
+  });
+
+  retakeBtn.addEventListener('click', () => {
+    showLive();
+  });
+
+  submitBtn.addEventListener('click', async () => {
+    status.textContent = 'Versturen…';
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+    const base64 = dataUrl.split(',')[1];
+
+    try {
+      const res = await fetch('https://jouw-n8n-instance/webhook/selfie', {   // <--- zet hier je webhook URL
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          filename: `selfie-${Date.now()}.jpg`,
+          image_base64: base64,
+          redirect_url: 'https://example.com/bedankt'
+        })
+      });
+      const body = await res.json();
+      status.textContent = 'Foto verzonden — doorsturen...';
+      window.location.href = body.redirect_url || 'https://example.com/bedankt';
+    } catch (err) {
+      status.textContent = 'Fout bij verzenden: ' + err.message;
+    }
+  });
+})();
+</script>
+</body>
+</html>
