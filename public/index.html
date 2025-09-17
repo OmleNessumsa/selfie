@@ -73,7 +73,7 @@
     const base64 = dataUrl.split(',')[1];
 
     try {
-      const res = await fetch('https://jouw-n8n-instance/webhook/selfie', {   // <--- zet hier je webhook URL
+      const res = await fetch('https://asmussen.app.n8n.cloud/webhook/foto', {   // <--- zet hier je webhook URL
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
